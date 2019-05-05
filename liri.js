@@ -1,131 +1,107 @@
 require("dotenv").config();
-var fs = require('fs');
-var Spotify = require('Node-Spotify-API');
-var keys = require('./keys.js');
 var axios = require("axios");
-var Spotify = new Spotify(keys.spotify);
+var keys = require("./keys.js");
+var fs = require ("fs");
+var Spotify = require('node-spotify-api');
+var spotify = new Spotify(keys.spotify);
 
-var defaultSong = require("The Sign");
-var defaultMovie = "Mr. Nobody";
 
-function getSongs(songName) {
+var queryvalue = process.argv[2];
+var Search = process.argv.slice(3).join(" ");
 
-    if (songName === "") {
-        songName = "The Sign";
-    }
+function switchFunc(){
+switch (queryvalue) {
+    case "spotify-this-song":
+        song()
+        break;
 
-    spotify.search({ type: 'track', query: songName }, function (error, data) {
-        if (error) {
-            return console.log("Ace of Base: ' + 'The Sign");
-        }
-        else {
-            console.log("Error!")
+    case "concert-this":
+        searchBandsInTown()
+        break;
 
-            console.log(JSON.stringify(data));
+    case "movie-this":
+        movie()
+        break;
 
-            //Artist(s)
-            console.log("Artists: ", data.tracks.items[0].album.artists[0].name)
-            // The album 
-            console.log("Album Name: ", data.tracks.items[0].album.name)
-            // A preview link 
-            console.log("Preview Link: ", data.tracks.items[0].preview_url)
-
-        };
-    }
-    )
-    function getMovies(movieName) {
-       
-        axios.get("https://www.omdbapi.com/?t=' + movieName + '&y=&plot=short&apikey=e850b422")
-            .then(function (data) {
-
-                var results = `
-            Title: ${data.data.Title}
-            Year: ${data.data.Year}
-            IMDB Rating: ${data.data.Rated}
-            Rotten Tomatoes Rating: ${data.data.Ratings[1].Value}
-            Country: ${data.data.Country}
-            Language: ${data.data.Language}
-            Plot: ${data.data.Plot}
-            Actors: ${data.data.Actors}`;
-                console.log(results)
-
-            })
-
-            .catch(function (error) {
-                console.log(error);
-            });
-
-        if (movieName === "Mr. Nobody") {
-            console.log("-----------------------");
-            console.log("If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-            console.log("It's on Netflix!");
-        };
-    }
-    function getBands(artist) {
-      
-        axios.get("https://rest.bandsintown.com/artists/" + artist + "/events?app_id=codingbootcamp")
-            .then(function (response) {
-                console.log("Name:", response.data[0].venue.name);
-                console.log("Location:", response.data[0].venue.city);
-                console.log("Date:", eventDate);
-                var eventDate = moment(response.data[0].datetime).format('MM/DD/YYYY');
-
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
-    }
-
-    function doWhatItSays() {
-        fs.readFile("random.txt", "utf8", function (error, data) {
-            data = data.split(",");
-            var action = data[0]
-            var value = data[1]
-
-            switch (action) {
-                case "spotify-this-song":
-                    getSongs(value)
-                    break;
-                case "concert-this":
-                    getBands(value)
-                    break;
-                case "movie-this":
-                    getMovies(value)
-                    break;
-                default:
-                    break;
-            }
-        });
-    }
+    case "do-what-its-says":
+    random()
+        console.log("fs response")
+}
 }
 
-    switch (action) {
-        case "concert-this":
-            getBands(value)
-            break;
-        case "spotify-this-song":
-
-            if (value === "") {
-                value = defaultSong;
-            }
-            getSongs(value)
-            break;
-        case "movie-this":
-
-            if (value == "") {
-                value = defaultMovie;
-            }
-            getMovies(value)
-            break;
-        case "do-what-it-says":
-            doWhatItSays()
-            break;
-        default:
-            break;
+function random(){
+    fs.readFile("random.txt", "utf8", function(err, data) {
+    
+        // If the code experiences any errors it will log the error to the console.
+        if (error) {
+          return console.log(err);
+        }
+      
+        console.log(data);
+      
+        // Then split it by commas (to make it more readable)
+        var dataArr = data.split(",");
+      
+        // We will then re-display the content as an array for later use.
+        console.log(dataArr);
+        queryvalue = dataArr[0]
+        Search = dataArr[1]
+        console.log(queryvalue)
+        console.log(Search)
+        switchFunc()
+      
+      });
     }
+    
+switchFunc()
+//Spotify query
+function song() {
+
+    spotify.search({ type: 'track', query: Search, limit: 1 }, function (err, data) {
+        if (err) {
+            return console.log('Error occurred: ' + err);
+        }
+        //console.log(data)
+        var songData = data.tracks.items[0];
+        // console.log("Data" , data.tracks.items[0])
+        console.log("Artist Name: ", songData.album.artists[0].name)
+        console.log("Song Name: ", songData.name)
+        console.log("Album Name: ", songData.album.name)
+    });
+};
+
+
+function movie() {
+    var queryUrl = "http://www.omdbapi.com/?t=" + Search + "&y=&plot=short&apikey=trilogy";
+
+ 
+    axios.get(queryUrl).then(
+        function (response) {
+            console.log("Title: " + response.data.Title);
+            console.log("Year: " + response.data.Year);
+            console.log("IMDB Rating: " + response.data.imdbRating);
+            // console.log("Rotten Tomatoes rating: " + response.data.tomatoRating);
+            console.log("Country: " + response.data.Country);
+            console.log("Language: " + response.data.Language);
+            console.log("Plot: " + response.data.Plot);
+            console.log("Actors: " + response.data.Actors);
+
+        }
+    );
+}
+
+function searchBandsInTown() {
+        var queryUrl = "https://rest.bandsintown.com/artists/" + Search + "/events?app_id=codingbootcamp";
+    
+      
+        axios.get(queryUrl).then(
+            function (response) {
+                    console.log("Name: " + response.data[0].venue.name);
+                    console.log("Venue: " + response.data[0].venue.city);
+                    console.log("Date: " + response.data[0].datetime);
 
    
-var action = process.argv[2];
-var value = process.argv[3];
-
+            }
+        );
+    }
 
